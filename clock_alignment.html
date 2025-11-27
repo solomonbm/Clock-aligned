@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clock Hand Alignment Finder</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 0;
+        }
+        .content {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .clock-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            background: #f8f9fa;
+        }
+        .time-display {
+            margin-top: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 200px;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        .start-btn {
+            background: #10b981;
+            color: white;
+        }
+        .start-btn:hover {
+            background: #059669;
+        }
+        .stop-btn {
+            background: #ef4444;
+            color: white;
+        }
+        .stop-btn:hover {
+            background: #dc2626;
+        }
+        .reset-btn {
+            background: #667eea;
+            color: white;
+        }
+        .reset-btn:hover {
+            background: #5568d3;
+        }
+        .clear-btn {
+            background: #f59e0b;
+            color: white;
+        }
+        .clear-btn:hover {
+            background: #d97706;
+        }
+        .alignments {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+        .alignment-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .info {
+            text-align: center;
+            color: #666;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .speed-control {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .speed-control label {
+            font-size: 14px;
+            color: #666;
+        }
+        .speed-control input {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏰ Clock Hand Alignment Finder</h1>
+        <div class="content">
+            <div class="clock-section">
+                <canvas id="clockCanvas" width="350" height="350"></canvas>
+                <div class="time-display" id="timeDisplay">0:00:00.000</div>
+            </div>
+            <div class="controls">
+                <button class="start-btn" onclick="start()">▶ Start</button>
+                <button class="stop-btn" onclick="stop()">⏸ Stop</button>
+                <button class="reset-btn" onclick="reset()">↻ Reset</button>
+                <button class="clear-btn" onclick="clearAlignments()">🗑 Clear Log</button>
+                
+                <div class="speed-control">
+                    <label>Speed: <span id="speedValue">100x</span></label>
+                    <input type="range" id="speedSlider" min="1" max="1000" value="100" oninput="updateSpeed(this.value)">
+                </div>
+                
+                <div class="alignments" id="alignments">
+                    <div style="color: #999; text-align: center;">Alignments will appear here...</div>
+                </div>
+            </div>
+        </div>
+        <div class="info">
+            Finding moments when all three clock hands align on a 180° line
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('clockCanvas');
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const clockRadius = 140;
+        
+        let milliseconds = 0;
+        let isRunning = false;
+        let animationId = null;
+        let lastTime = 0;
+        let speed = 100;
+        let alignmentCount = 0;
+        let lastAlignmentCheck = -1000;
+        
+        function updateSpeed(value) {
+            speed = parseInt(value);
+            document.getElementById('speedValue').textContent = speed + 'x';
+        }
+        
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const millis = ms % 1000;
+            
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}`;
+        }
+        
+        function getAngles(ms) {
+            const totalSeconds = ms / 1000;
+            
+            // Second hand: completes 360° in 60 seconds
+            const secondAngle = (totalSeconds % 60) * 6;
+            
+            // Minute hand: completes 360° in 3600 seconds (60 minutes)
+            const minuteAngle = (totalSeconds % 3600) / 60 * 6;
+            
+            // Hour hand: completes 360° in 43200 seconds (12 hours)
+            const hourAngle = (totalSeconds % 43200) / 120;
+            
+            return { second: secondAngle, minute: minuteAngle, hour: hourAngle };
+        }
+        
+        function normalizeAngle(angle) {
+            return ((angle % 360) + 360) % 360;
+        }
+        
+        function areAligned(angle1, angle2, angle3, tolerance = 1.0) {
+            const a1 = normalizeAngle(angle1);
+            const a2 = normalizeAngle(angle2);
+            const a3 = normalizeAngle(angle3);
+            
+            const angles = [a1, a2, a3].sort((a, b) => a - b);
+            
+            // Check if all angles are close together
+            const closeTogether = (angles[2] - angles[0]) <= tolerance;
+            
+            // Check if they form a line (one angle ~180° from the others)
+            const formLine180 = 
+                (Math.abs(angles[1] - angles[0]) <= tolerance && Math.abs(angles[2] - angles[0] - 180) <= tolerance) ||
+                (Math.abs(angles[2] - angles[1]) <= tolerance && Math.abs(angles[1] - angles[0] - 180) <= tolerance) ||
+                (Math.abs(angles[2] - angles[0]) <= tolerance && Math.abs(angles[1] - angles[0] - 180) <= tolerance);
+            
+            return closeTogether || formLine180;
+        }
+        
+        function checkAlignment() {
+            // Avoid checking too frequently
+            if (milliseconds - lastAlignmentCheck < 100) return;
+            
+            const angles = getAngles(milliseconds);
+            
+            if (areAligned(angles.second, angles.minute, angles.hour)) {
+                lastAlignmentCheck = milliseconds;
+                alignmentCount++;
+                
+                const alignmentDiv = document.getElementById('alignments');
+                const item = document.createElement('div');
+                item.className = 'alignment-item';
+                item.textContent = `#${alignmentCount}: ${formatTime(milliseconds)} (S:${angles.second.toFixed(1)}° M:${angles.minute.toFixed(1)}° H:${angles.hour.toFixed(1)}°)`;
+                
+                if (alignmentDiv.children[0]?.textContent.includes('will appear here')) {
+                    alignmentDiv.innerHTML = '';
+                }
+                
+                alignmentDiv.insertBefore(item, alignmentDiv.firstChild);
+            }
+        }
+        
+        function drawClock() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw clock face
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, clockRadius, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+            
+            // Draw tick marks
+            for (let i = 0; i < 60; i++) {
+                const angle = (i * 6 - 90) * Math.PI / 180;
+                let tickLength = 10;
+                let tickWidth = 2;
+                
+                if (i % 15 === 0) {
+                    tickLength = 25;
+                    tickWidth = 4;
+                } else if (i % 5 === 0) {
+                    tickLength = 18;
+                    tickWidth = 3;
+                }
+                
+                const startX = centerX + Math.cos(angle) * clockRadius;
+                const startY = centerY + Math.sin(angle) * clockRadius;
+                const endX = centerX + Math.cos(angle) * (clockRadius - tickLength);
+                const endY = centerY + Math.sin(angle) * (clockRadius - tickLength);
+                
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.strokeStyle = '#667eea';
+                ctx.lineWidth = tickWidth;
+                ctx.stroke();
+            }
+            
+            const angles = getAngles(milliseconds);
+            
+            // Draw hour hand
+            drawHand(angles.hour, 70, 8, '#333');
+            
+            // Draw minute hand
+            drawHand(angles.minute, 100, 6, '#555');
+            
+            // Draw second hand
+            drawHand(angles.second, 120, 3, '#ef4444');
+            
+            // Draw center pin
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 8, 0, 2 * Math.PI);
+            ctx.fillStyle = '#667eea';
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+        
+        function drawHand(angleDegrees, length, width, color) {
+            const angle = (angleDegrees - 90) * Math.PI / 180;
+            const endX = centerX + Math.cos(angle) * length;
+            const endY = centerY + Math.sin(angle) * length;
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(endX, endY);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+        
+        function animate(currentTime) {
+            if (!isRunning) return;
+            
+            if (lastTime === 0) {
+                lastTime = currentTime;
+            }
+            
+            const deltaTime = currentTime - lastTime;
+            milliseconds += deltaTime * speed;
+            lastTime = currentTime;
+            
+            drawClock();
+            checkAlignment();
+            document.getElementById('timeDisplay').textContent = formatTime(milliseconds);
+            
+            // Stop after 12 hours
+            if (milliseconds >= 43200000) {
+                stop();
+                return;
+            }
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function start() {
+            if (!isRunning) {
+                isRunning = true;
+                lastTime = 0;
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+        
+        function stop() {
+            isRunning = false;
+            lastTime = 0;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        }
+        
+        function reset() {
+            stop();
+            milliseconds = 0;
+            document.getElementById('timeDisplay').textContent = formatTime(0);
+            drawClock();
+        }
+        
+        function clearAlignments() {
+            const alignmentDiv = document.getElementById('alignments');
+            alignmentDiv.innerHTML = '<div style="color: #999; text-align: center;">Alignments will appear here...</div>';
+            alignmentCount = 0;
+            lastAlignmentCheck = -1000;
+        }
+        
+        // Initial draw
+        drawClock();
+    </script>
+</body>
+</html>
