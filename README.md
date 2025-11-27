@@ -30,7 +30,7 @@ cd clock-aligned
 
 2. Run the application:
 ```bash
-python clock_alignment.py
+python clock_aligned.py
 ```
 
 ## Usage
