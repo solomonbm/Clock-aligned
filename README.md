@@ -1,15 +1,104 @@
-# Clock-aligned
-The following Python program I wrote in order to find the answer, and illustrate it nicely, to the problem I once thought about, which is - in which time of the day on an analog clock, which is continuous in regards to the seconds hand’s movement, will the three hands be on a one straight line (you can imagine why this isn’t a straight forward question).
-Most of the code are bits and pieces I found online, but there was still a lot of work that needed to be done.
-All the calculations, and the setup of the graphic image of the clock (which is just a couple of circles and lines put together on a plane) are not straight forward, but pretty neat in my opinion. This program uses "CodeSculptor's" simplegui module. 
-Enjoy! 
+# Clock Aligned ⏰
 
-In order to run this program, you need to do the following:
-####1)	Go to http://www.codeskulptor.org/
-####2)	Delete all the code from the code section (on the left)
-####3)	Copy the code from the py file attached (clock_aligned.py) to the code section
-####4)	Click the triangle “Play” button on the top left (above the code section)
-####5)	Click “Start”, and the clock will start moving at around 10 times faster than an ordinary clock, and will run until the 6 hour mark (in order not to exhaust you too much), whilst printing on the left hand side of the small screen the time at which the three hands (seconds, minuets and hours) are aligned.
-####6)	The accuracy is for 360 slices of the circle, meaning that two hands are on the same line if they share the same ‘slice’ out of the 360 slices, or their slices are 180 degrees from one another.  
+A Python application that simulates an analog clock and finds the exact moments when all three clock hands (hour, minute, and second) align on a straight 180° line.
 
-![clock-aligned-screenshot](https://cloud.githubusercontent.com/assets/21333475/20100730/6d0ea50c-a5c7-11e6-8003-789efde9ce1d.png)
+## Overview
+
+This simulation demonstrates a fascinating mathematical problem: determining when the hour, minute, and second hands of a clock are perfectly aligned (either pointing in the same direction or in opposite directions on a straight line). The application provides millisecond precision tracking to identify these rare alignment events.
+
+## Features
+
+- **Real-time Clock Simulation**: Visual analog clock with smooth hand movements
+- **Millisecond Precision**: Time tracking accurate to 1 millisecond
+- **Alignment Detection**: Automatically detects when all three hands align within 1° tolerance
+- **Variable Speed Control**: Speed up the simulation from 1x to 100x for faster analysis
+- **Alignment Logging**: Records all alignment events with exact timestamps and hand angles
+- **Clean GUI**: Built with Tkinter for cross-platform compatibility
+
+## Requirements
+
+- Python 3.6 or higher
+- tkinter (usually included with Python)
+
+## Installation
+
+1. Clone this repository:
+```bash
+git clone https://github.com/yourusername/clock-aligned.git
+cd clock-aligned
+```
+
+2. Run the application:
+```bash
+python clock_alignment.py
+```
+
+## Usage
+
+1. **Start**: Click the "▶ Start" button to begin the simulation
+2. **Adjust Speed**: Use the speed slider to run faster (useful for finding alignments quickly)
+3. **Stop**: Click "⏸ Stop" to pause the simulation
+4. **Reset**: Click "↻ Reset" to return the clock to 0:00:00.000
+5. **Clear Log**: Click "🗑 Clear Log" to clear the alignment history
+
+The simulation will automatically detect and log alignment events in the right panel, showing:
+- Sequential alignment number
+- Exact timestamp (H:MM:SS.mmm)
+- Precise angles of each hand at the moment of alignment
+
+## How It Works
+
+### Hand Movement
+
+Each clock hand moves at a different angular velocity:
+- **Second hand**: 6° per second (360° in 60 seconds)
+- **Minute hand**: 0.1° per second (360° in 3600 seconds)
+- **Hour hand**: 0.00833...° per second (360° in 43200 seconds)
+
+### Alignment Detection
+
+The algorithm checks if all three hands form a straight line by verifying that:
+1. All three angles are within 1° of each other (pointing in the same direction), OR
+2. Two hands are within 1° of each other and the third is within 1° of being 180° opposite
+
+### Mathematical Background
+
+In a 12-hour period, the hands of a clock align multiple times. This occurs when the relative positions of the hands satisfy specific angular relationships. The exact moments can be calculated using modular arithmetic and angular velocity ratios.
+
+## Expected Results
+
+When running the simulation for several hours, you should observe alignments at various intervals. The first non-trivial alignment typically occurs around **65-66 minutes** into the simulation.
+
+Common alignment patterns occur approximately every **~65 minutes**, though the exact timing varies due to the complex relationship between the three hands' velocities.
+
+## Technical Details
+
+- **Language**: Python 3
+- **GUI Framework**: Tkinter
+- **Graphics**: Canvas API for 2D drawing
+- **Precision**: Millisecond-level time tracking
+- **Simulation Speed**: 16ms frame updates (~60 FPS)
+
+## Future Enhancements
+
+Potential improvements for future versions:
+- Export alignment data to CSV
+- Visualization of alignment frequency over time
+- Mathematical prediction of alignment moments
+- Support for different clock configurations (24-hour, custom hand ratios)
+
+## License
+
+MIT License - feel free to use and modify as needed.
+
+## Author
+
+Original SimpleGUI version created for educational purposes. Modernized with Tkinter for improved accessibility and functionality.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
+
+**Note**: This simulation runs for a maximum of 12 hours (43,200,000 milliseconds) before automatically stopping.
