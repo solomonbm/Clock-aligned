@@ -24,7 +24,7 @@ This simulation demonstrates a fascinating mathematical problem: determining whe
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/yourusername/clock-aligned.git
+git clone https://github.com/solomonbm/Clock-aligned.git
 cd clock-aligned
 ```
 
