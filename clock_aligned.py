@@ -13,9 +13,10 @@ class ClockAlignmentFinder:
         # Time tracking (in milliseconds)
         self.milliseconds = 0
         self.is_running = False
-        self.speed = 1
+        self.speed = 100
         self.alignment_count = 0
         self.last_alignment = -1000  # Prevent duplicate detections
+        self.tolerance = 5.0  # Degrees tolerance for alignment
         
         # Create UI
         self.create_widgets()
@@ -93,10 +94,29 @@ class ClockAlignmentFinder:
                                          font=('Arial', 10, 'bold'), bg='#f0f0f0')
         self.speed_value_label.pack(side=tk.LEFT, padx=5)
         
-        self.speed_scale = tk.Scale(speed_frame, from_=1, to=100, 
+        self.speed_scale = tk.Scale(speed_frame, from_=100, to=1000, 
                                    orient=tk.HORIZONTAL, variable=self.speed_var,
                                    command=self.update_speed, bg='#f0f0f0')
         self.speed_scale.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        # Tolerance control (NEW)
+        tolerance_frame = tk.Frame(right_frame, bg='#f0f0f0')
+        tolerance_frame.pack(fill=tk.X, pady=10)
+        
+        tolerance_label = tk.Label(tolerance_frame, text="Tolerance:", 
+                                  font=('Arial', 10), bg='#f0f0f0')
+        tolerance_label.pack(side=tk.LEFT)
+        
+        self.tolerance_var = tk.DoubleVar(value=5.0)
+        self.tolerance_value_label = tk.Label(tolerance_frame, text="5.0°", 
+                                             font=('Arial', 10, 'bold'), bg='#f0f0f0')
+        self.tolerance_value_label.pack(side=tk.LEFT, padx=5)
+        
+        self.tolerance_scale = tk.Scale(tolerance_frame, from_=0.5, to=15.0, 
+                                       orient=tk.HORIZONTAL, variable=self.tolerance_var,
+                                       command=self.update_tolerance, bg='#f0f0f0',
+                                       resolution=0.1)
+        self.tolerance_scale.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
         # Alignments log
         log_label = tk.Label(right_frame, text="Alignment Log:", 
@@ -188,7 +208,7 @@ class ClockAlignmentFinder:
         
         sec_angle, min_angle, hour_angle = self.get_angles(self.milliseconds)
         
-        if self.are_aligned(sec_angle, min_angle, hour_angle):
+        if self.are_aligned(sec_angle, min_angle, hour_angle, self.tolerance):
             self.last_alignment = self.milliseconds
             self.alignment_count += 1
             
@@ -274,13 +294,18 @@ class ClockAlignmentFinder:
         self.speed = int(value)
         self.speed_value_label.config(text=f"{self.speed}x")
     
+    def update_tolerance(self, value):
+        """Update tolerance value (NEW)"""
+        self.tolerance = float(value)
+        self.tolerance_value_label.config(text=f"{self.tolerance:.1f}°")
+    
     def animate(self):
         """Animation loop"""
         if not self.is_running:
             return
         
-        # Increment by 1ms * speed
-        self.milliseconds += 1 * self.speed
+        # Increment by 100ms * speed
+        self.milliseconds += 100 * self.speed
         
         # Stop after 12 hours
         if self.milliseconds >= 12 * 60 * 60 * 1000:
